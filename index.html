@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Su">
+<meta name="theme-color" content="#f4f7fb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1220" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<title>Su Takibi</title>
+<style>
+  :root {
+    --bg: #f4f7fb; --card: #ffffff; --text: #0f1b2d; --muted: #6b7a90;
+    --accent: #1e88e5; --accent2: #4fc3f7; --track: #e3eaf3;
+    --shadow: 0 1px 2px rgba(15,27,45,.06), 0 4px 14px rgba(15,27,45,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b1220; --card: #141d2e; --text: #e8eef7; --muted: #8a9ab2;
+      --track: #22304a; --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body {
+    font: 16px/1.4 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    padding: calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 24px);
+    max-width: 480px; margin: 0 auto;
+    -webkit-user-select: none; user-select: none;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; }
+
+  header { display: flex; justify-content: space-between; align-items: center; }
+  h1 { font-size: 28px; margin: 0; font-weight: 700; }
+  .date { color: var(--muted); font-size: 14px; }
+  .icon-btn {
+    border: 0; background: var(--card); width: 42px; height: 42px; border-radius: 50%;
+    font-size: 20px; box-shadow: var(--shadow);
+  }
+
+  .ring-wrap { position: relative; width: 240px; height: 240px; margin: 20px auto 16px; }
+  .ring-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .track { stroke: var(--track); }
+  .prog { transition: stroke-dashoffset .5s ease, opacity .2s; }
+  .center {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .amount { font-size: 46px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+  .goal { color: var(--muted); font-size: 15px; }
+  .pct { margin-top: 6px; font-weight: 600; color: var(--accent); }
+
+  .quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 8px 0 20px; }
+  .quick button {
+    border: 0; border-radius: 16px; background: var(--card); padding: 14px 4px;
+    font-weight: 700; box-shadow: var(--shadow);
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    transition: transform .1s;
+  }
+  .quick button small { color: var(--muted); font-weight: 500; font-size: 12px; }
+  .quick button:active { transform: scale(.95); }
+
+  .card { background: var(--card); border-radius: 18px; padding: 14px 16px; box-shadow: var(--shadow); margin-bottom: 16px; }
+  .card h2 {
+    font-size: 13px; margin: 0 0 8px; color: var(--muted); font-weight: 600;
+    text-transform: uppercase; letter-spacing: .05em;
+  }
+  .log { list-style: none; margin: 0; padding: 0; }
+  .log li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--track); }
+  .log li:first-child { border-top: 0; }
+  .log .time { color: var(--muted); font-variant-numeric: tabular-nums; width: 48px; }
+  .log .ml { flex: 1; font-weight: 600; }
+  .del { border: 0; background: none; color: var(--muted); font-size: 22px; line-height: 1; padding: 4px 8px; }
+  .empty { color: var(--muted); text-align: center; padding: 8px 0; }
+
+  .bars { position: relative; height: 110px; display: flex; align-items: flex-end; gap: 8px; }
+  .bar {
+    flex: 1; border-radius: 8px 8px 4px 4px; background: var(--track); min-height: 4px;
+    transition: height .4s ease;
+  }
+  .bar.part { background: var(--accent); opacity: .5; }
+  .bar.ok { background: linear-gradient(var(--accent2), var(--accent)); }
+  .goal-line { position: absolute; left: 0; right: 0; border-top: 1.5px dashed var(--muted); opacity: .5; pointer-events: none; }
+  .labels { display: flex; gap: 8px; margin-top: 6px; }
+  .labels span { flex: 1; text-align: center; font-size: 12px; color: var(--muted); }
+  .labels span.today { color: var(--text); font-weight: 700; }
+  .stats { display: flex; justify-content: space-between; margin-top: 12px; font-size: 14px; color: var(--muted); }
+  .stats b { color: var(--text); }
+
+  dialog {
+    border: 0; border-radius: 20px; background: var(--card); color: var(--text);
+    padding: 20px; width: min(320px, 90vw);
+  }
+  dialog::backdrop { background: rgba(0,0,0,.45); }
+  dialog h3 { margin: 0 0 4px; }
+  dialog p { margin: 0; color: var(--muted); font-size: 14px; }
+  dialog input {
+    width: 100%; font: inherit; font-size: 24px; padding: 10px 12px; border-radius: 12px;
+    border: 1px solid var(--track); background: var(--bg); color: var(--text); margin: 12px 0 16px;
+    -webkit-user-select: text; user-select: text;
+  }
+  .row { display: flex; gap: 10px; }
+  .row button { flex: 1; padding: 12px; border-radius: 12px; border: 0; font-weight: 600; }
+  .primary { background: var(--accent); color: #fff !important; }
+  .secondary { background: var(--track); }
+</style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Su</h1>
+      <div class="date" id="date"></div>
+    </div>
+    <button class="icon-btn" id="settingsBtn" aria-label="Hedefi değiştir">⚙︎</button>
+  </header>
+
+  <div class="ring-wrap">
+    <svg viewBox="0 0 200 200" aria-hidden="true">
+      <defs>
+        <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#4fc3f7"/>
+          <stop offset="1" stop-color="#1e88e5"/>
+        </linearGradient>
+      </defs>
+      <circle class="track" cx="100" cy="100" r="88" fill="none" stroke-width="16"/>
+      <circle class="prog" id="prog" cx="100" cy="100" r="88" fill="none" stroke="url(#grad)" stroke-width="16" stroke-linecap="round"/>
+    </svg>
+    <div class="center">
+      <div class="amount" id="amount">0</div>
+      <div class="goal" id="goal"></div>
+      <div class="pct" id="pct"></div>
+    </div>
+  </div>
+
+  <div class="quick">
+    <button data-ml="200">200<small>Bardak</small></button>
+    <button data-ml="330">330<small>Kutu</small></button>
+    <button data-ml="500">500<small>Şişe</small></button>
+    <button id="customBtn">+<small>Diğer</small></button>
+  </div>
+
+  <section class="card">
+    <h2>Bugün</h2>
+    <ul class="log" id="log"></ul>
+  </section>
+
+  <section class="card">
+    <h2>Son 7 gün</h2>
+    <div class="bars" id="bars"></div>
+    <div class="labels" id="labels"></div>
+    <div class="stats" id="stats"></div>
+  </section>
+
+  <dialog id="customDlg">
+    <form method="dialog">
+      <h3>Miktar ekle</h3>
+      <p>Mililitre (ml) olarak</p>
+      <input id="customInput" type="number" inputmode="numeric" min="1" max="5000" placeholder="250">
+      <div class="row">
+        <button type="button" class="secondary" onclick="this.closest('dialog').close()">Vazgeç</button>
+        <button value="ok" class="primary">Ekle</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="goalDlg">
+    <form method="dialog">
+      <h3>Günlük hedef</h3>
+      <p>Mililitre (ml) olarak</p>
+      <input id="goalInput" type="number" inputmode="numeric" min="250" max="10000">
+      <div class="row">
+        <button type="button" class="secondary" onclick="this.closest('dialog').close()">Vazgeç</button>
+        <button value="ok" class="primary">Kaydet</button>
+      </div>
+    </form>
+  </dialog>
+
+<script>
+  const KEY = 'su-takip-v1';
+  const C = 2 * Math.PI * 88;
+  const DAYS = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
+  const $ = id => document.getElementById(id);
+
+  let state = { goal: 2500, days: {} };
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY));
+    if (saved && saved.days) state = saved;
+  } catch (e) {}
+
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+  }
+
+  function dayKey(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  const fmt = n => n.toLocaleString('tr-TR');
+  const sum = list => (list || []).reduce((a, e) => a + e.ml, 0);
+
+  function add(ml) {
+    const k = dayKey(new Date());
+    (state.days[k] = state.days[k] || []).push({ t: Date.now(), ml });
+    save();
+    render();
+  }
+
+  function removeEntry(i) {
+    const k = dayKey(new Date());
+    state.days[k].splice(i, 1);
+    save();
+    render();
+  }
+
+  function render() {
+    const now = new Date();
+    const list = state.days[dayKey(now)] || [];
+    const total = sum(list);
+    const p = total / state.goal;
+
+    $('date').textContent = now.toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' });
+    $('amount').textContent = fmt(total);
+    $('goal').textContent = '/ ' + fmt(state.goal) + ' ml';
+    $('pct').textContent = p >= 1 ? 'Hedef tamam 🎉' : '%' + Math.round(p * 100);
+
+    const prog = $('prog');
+    prog.style.strokeDasharray = C;
+    prog.style.strokeDashoffset = C * (1 - Math.min(p, 1));
+    prog.style.opacity = total ? 1 : 0;
+
+    // Bugünün kayıtları (en yeni üstte)
+    const log = $('log');
+    if (!list.length) {
+      log.innerHTML = '<li class="empty">Henüz su eklenmedi</li>';
+    } else {
+      log.innerHTML = list.map((e, i) => {
+        const t = new Date(e.t).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+        return `<li><span class="time">${t}</span><span class="ml">${fmt(e.ml)} ml</span><button class="del" data-i="${i}" aria-label="Sil">×</button></li>`;
+      }).reverse().join('');
+    }
+
+    // Son 7 gün
+    const week = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+      week.push({ label: DAYS[d.getDay()], total: sum(state.days[dayKey(d)]), today: i === 0 });
+    }
+    const max = Math.max(state.goal * 1.15, ...week.map(w => w.total));
+    $('bars').innerHTML =
+      `<div class="goal-line" style="bottom:${state.goal / max * 100}%"></div>` +
+      week.map(w => {
+        const cls = w.total >= state.goal ? 'ok' : w.total > 0 ? 'part' : '';
+        return `<div class="bar ${cls}" style="height:${w.total / max * 100}%" title="${fmt(w.total)} ml"></div>`;
+      }).join('');
+    $('labels').innerHTML = week.map(w => `<span class="${w.today ? 'today' : ''}">${w.label}</span>`).join('');
+
+    const avg = Math.round(week.reduce((a, w) => a + w.total, 0) / 7);
+    const hit = week.filter(w => w.total >= state.goal).length;
+    $('stats').innerHTML = `<span>Ortalama <b>${fmt(avg)} ml</b></span><span>Hedef <b>${hit}/7</b> gün</span>`;
+  }
+
+  document.querySelectorAll('.quick [data-ml]').forEach(b =>
+    b.addEventListener('click', () => add(+b.dataset.ml)));
+
+  $('log').addEventListener('click', e => {
+    const b = e.target.closest('.del');
+    if (b) removeEntry(+b.dataset.i);
+  });
+
+  $('customBtn').addEventListener('click', () => {
+    $('customInput').value = '';
+    $('customDlg').showModal();
+    $('customInput').focus();
+  });
+  $('settingsBtn').addEventListener('click', () => {
+    $('goalInput').value = state.goal;
+    $('goalDlg').showModal();
+  });
+
+  // Pencere butonları: "Vazgeç" kapatır, "Ekle/Kaydet" değeri uygular
+  document.querySelectorAll('dialog form').forEach(form => form.addEventListener('submit', e => {
+    e.preventDefault();
+    const dlg = form.closest('dialog');
+    if (e.submitter && e.submitter.value === 'ok') {
+      if (dlg.id === 'customDlg') {
+        const v = parseInt($('customInput').value, 10);
+        if (!(v > 0 && v <= 5000)) return;
+        add(v);
+      } else {
+        const v = parseInt($('goalInput').value, 10);
+        if (!(v >= 250 && v <= 10000)) return;
+        state.goal = v;
+        save();
+        render();
+      }
+    }
+    dlg.close();
+  }));
+
+  // Uygulama ertesi gün tekrar açıldığında günü yenile
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) render(); });
+
+  render();
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+</script>
+</body>
+</html>
